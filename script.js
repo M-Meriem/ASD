@@ -64,8 +64,8 @@ const MODULES = [
   },
   {
     id: 'langagec',
-    code: 'Histoire de programmation',
-    cat: 'Histoire de programmation',
+    code: 'Histoire de la programmation',
+    cat: 'Histoire de la programmation',
     titre: 'Langage C — Programmation procédurale',
     niveau: 'Programmation — Mise en pratique',
     resume: "La concrétisation sur machine de tous les concepts d'algorithmique : syntaxe du C, compilation, gestion mémoire et fichiers. Le langage de référence pour comprendre ce que fait réellement un ordinateur.",
