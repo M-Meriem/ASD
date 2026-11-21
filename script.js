@@ -309,3 +309,141 @@ bars.forEach(b => bObserver.observe(b));
 document.getElementById('year').textContent = new Date().getFullYear();
 renderModules();
 observeAll();
+
+
+/* =========================================================
+   9. CSPHERE AI — CONNEXION AVEC FASTAPI
+   ========================================================= */
+
+const API_URL = "http://127.0.0.1:8000/chat";
+
+const aiMessages = document.getElementById("aiMessages");
+const aiChatForm = document.getElementById("aiChatForm");
+const aiQuestion = document.getElementById("aiQuestion");
+const aiSendButton = document.getElementById("aiSendButton");
+
+// Ajouter un message dans la conversation
+function addAIMessage(text, sender = "bot", sources = []) {
+    const message = document.createElement("div");
+    message.className = `ai-message ${sender}`;
+
+    const avatar = document.createElement("div");
+    avatar.className = "ai-message-avatar";
+    avatar.textContent = sender === "bot" ? "✦" : "👤";
+
+    const content = document.createElement("div");
+    content.className = "ai-message-content";
+
+    const name = document.createElement("strong");
+    name.textContent = sender === "bot" ? "CSphere AI" : "Vous";
+
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+
+    content.appendChild(name);
+    content.appendChild(paragraph);
+
+    // Afficher les sources documentaires
+    if (sender === "bot" && sources.length > 0) {
+        const sourceTitle = document.createElement("strong");
+        sourceTitle.textContent = "Sources pédagogiques :";
+        sourceTitle.style.marginTop = "12px";
+
+        const sourceList = document.createElement("ul");
+        sourceList.style.paddingLeft = "20px";
+        sourceList.style.fontSize = "0.78rem";
+        sourceList.style.lineHeight = "1.7";
+
+        sources.forEach(source => {
+            const item = document.createElement("li");
+
+            const file = source.file || source.filename || "Document";
+            const page = source.page ? ` — Page ${source.page}` : "";
+            const subject = source.subject
+                ? ` (${source.subject})`
+                : "";
+
+            item.textContent = `${file}${page}${subject}`;
+            sourceList.appendChild(item);
+        });
+
+        content.appendChild(sourceTitle);
+        content.appendChild(sourceList);
+    }
+
+    message.appendChild(avatar);
+    message.appendChild(content);
+
+    aiMessages.appendChild(message);
+    aiMessages.scrollTop = aiMessages.scrollHeight;
+
+    return message;
+}
+
+// Envoyer une question au backend
+aiChatForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const question = aiQuestion.value.trim();
+
+    if (!question) return;
+
+    // Afficher la question de l'utilisateur
+    addAIMessage(question, "user");
+
+    // Vider le champ et désactiver le bouton
+    aiQuestion.value = "";
+    aiSendButton.disabled = true;
+    aiSendButton.textContent = "Envoi...";
+
+    // Afficher un indicateur de chargement
+    const loadingMessage = addAIMessage(
+        "Je prépare votre réponse, veuillez patienter...",
+        "bot"
+    );
+
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                question: question
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP : ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Supprimer le message de chargement
+        loadingMessage.remove();
+
+        // Afficher la réponse
+        const answer = data.answer || "Aucune réponse n'a été retournée.";
+
+        addAIMessage(
+            answer,
+            "bot",
+            Array.isArray(data.sources) ? data.sources : []
+        );
+
+    } catch (error) {
+        console.error("Erreur CSphere AI :", error);
+
+        loadingMessage.remove();
+
+        addAIMessage(
+            "Impossible de contacter CSphere AI. Vérifiez que le serveur Backend est démarré et que la connexion est disponible.",
+            "bot"
+        );
+
+    } finally {
+        aiSendButton.disabled = false;
+        aiSendButton.innerHTML = 'Envoyer <span>➤</span>';
+        aiQuestion.focus();
+    }
+});
